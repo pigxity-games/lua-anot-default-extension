@@ -1,5 +1,5 @@
 from api.annotations import AnnotationRegistry
-from default_extension import lifecycle, test, index, networking
+from build import lifecycle, test, index, networking
 
 
 def load(ctx: AnnotationRegistry):
