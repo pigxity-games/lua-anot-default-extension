@@ -1,29 +1,23 @@
-local serviceMap: {[string]: any} = {}
-local services: {any} = {}
+--@module
+local module = {}
 
 --@onPostInit
-function _postInit()
-    for i, service in ipairs(services) do
-        local module = service.module
-        local deps: {string} = service.kwargs.deps
+function module:postInit(manifest)
+    for deps, serviceAnot in pairs(manifest.services) do
+        local service = serviceAnot.module
 
-        if module._init then
+        if service._init then
             --build deps list
             local inject_deps = {}
             if deps then
                 for i, dep in ipairs(deps) do
-                    table.insert(inject_deps, serviceMap[dep])
+                    inject_deps[i] = manifest.services[dep]
                 end
             end
 
-            module._init(deps)
+            service._init(deps)
         end
     end
 end
 
---@annotationInit
-function _service(anot)
-    --preserve load order
-    table.insert(services, anot)
-    serviceMap[anot.module_name] = anot
-end
+return module

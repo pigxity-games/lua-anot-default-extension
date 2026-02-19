@@ -1,5 +1,5 @@
 from api.annotations import ENVIRONMENTS, AnnotationBuildCtx, AnnotationDef, AnnotationRegistry, Extension
-from api.lua_dict import HEADER, LuaPath, LuaPathResolver, convert_dict
+from api.lua_dict import HEADER, LuaPath, LuaPathResolver, convert_dict_module
 from build_process import Environment, PostProcessCtx
 from parser_schemas import LuaModule, LuaType
 
@@ -18,10 +18,10 @@ class IndexExtension(Extension):
     def on_post_process(self, ctx: PostProcessCtx):
         for env in ENVIRONMENTS:
             # module index
-            ctx.create_file(env, 'Index.lua', convert_dict(ctx, self.indexes[env]))
+            ctx.create_file(env, 'Index.lua', convert_dict_module(ctx, self.indexes[env]))
 
             # type index
-            resolver = LuaPathResolver(ctx)
+            resolver = LuaPathResolver(ctx.workspace)
             imports: dict[str, str] = {}
             type_lines: list[str] = []
 
