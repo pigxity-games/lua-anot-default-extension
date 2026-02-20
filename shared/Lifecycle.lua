@@ -2,9 +2,9 @@
 local module = {}
 
 --@onPostInit
-function module:postInit(manifest)
+function module.postInit(manifest)
     for deps, serviceAnot in pairs(manifest.services) do
-        local service = serviceAnot.module
+        local service = serviceAnot.adornee
 
         if service._init then
             --build deps list
