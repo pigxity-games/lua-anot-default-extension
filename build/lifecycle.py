@@ -11,23 +11,40 @@ if TYPE_CHECKING:
 
 
 def filter_deps(deps: list[str]):
-    return [d for d in deps if ':' in d]
-    
+    return [d for d in deps if ':' not in d]
+
+
+def proc_deps(deps: list[str]):
+    out = {'services': [], 'remotes': []}
+    for dep in deps:
+        if ':' in dep:
+            out['remotes'].append(dep.split(':')[1])
+        else:
+            out['services'].append(dep)
+    return out
 
 class LifecycleExtension(Extension):
     def __init__(self):
         self.services: dict[Environment, list[Annotation]] = {env: [] for env in ENVIRONMENTS}
 
     def add_service(self, ctx: AnnotationBuildCtx):
-        env_manifest = self.manifestExt.manifest[ctx.build_ctx.env]
-        env_manifest['services'][ctx.annotation.adornee.name] = ctx.annotation.asdict()
+        self.services[ctx.build_ctx.env].append(ctx.annotation)
 
     def on_post_process(self, ctx: PostProcessCtx):
         for env in ('server', 'client'):
             services = self.services[env] + self.services['shared']
-            self.manifestExt.manifest[env]['services'] = {svc.adornee.returned_name: svc for svc in services}
 
-            sorter = TopologicalSorter({svc.adornee.returned_name: filter_deps(svc.kwargs_val['deps']) for svc in services})
+            self.manifestExt.manifest[env]['services'] = {svc.adornee.returned_name: (
+            {
+                'depends': proc_deps(svc.kwargs_val.get('depends', [])),
+                'module': svc.adornee.get_path(),
+                'kind': svc.name
+            }
+                | ({'tags': svc.args_val[0]} if svc.name == 'component' else {})
+            )
+            for svc in services}
+
+            sorter = TopologicalSorter({svc.adornee.returned_name: filter_deps(svc.kwargs_val.get('depends', {})) for svc in services})
             
             try:
                 self.manifestExt.manifest[env]['load_order'] = list(sorter.static_order())
@@ -36,8 +53,6 @@ class LifecycleExtension(Extension):
 
     def load(self, ctx: ExtensionRegistry):
         self.manifestExt: ManifestExtension = ctx.extensions['ManifestExtension']
-        for env in ENVIRONMENTS:
-            self.manifestExt.manifest[env]['services'] = {}
 
-        ctx.register_anot(AnnotationDef('service', retention='build', kwargs={'depends': list_arg}))
-        ctx.register_anot(AnnotationDef(name='component', retention='init', args=[str], kwargs={'depends': list_arg}))
+        ctx.register_anot(AnnotationDef('service', retention='build', kwargs={'depends': list_arg}, on_build=self.add_service))
+        ctx.register_anot(AnnotationDef(name='component', retention='build', args=[list_arg], kwargs={'depends': list_arg}, on_build=self.add_service))
