@@ -1,6 +1,6 @@
 from typing import Any
 
-from api.annotations import AnnotationBuildCtx, AnnotationDef, AnnotationRegistry, Extension
+from api.annotations import AnnotationBuildCtx, AnnotationDef, ExtensionRegistry, Extension
 from build_process import PostProcessCtx
 
 REMOTE_INSTANCE_MAP = {
@@ -27,7 +27,7 @@ class NetworkingExtension(Extension):
         ctx.dump_json('shared', 'Remotes.model.json', model)
 
 
-    def load(self, ctx: AnnotationRegistry):
-        ctx.registerAnot(
+    def load(self, ctx: ExtensionRegistry):
+        ctx.register_anot(
             AnnotationDef('remote', scope='method', args=[str], on_build=self.remote_on_build)
         )
