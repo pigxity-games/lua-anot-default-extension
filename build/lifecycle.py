@@ -37,7 +37,7 @@ class LifecycleExtension(Extension):
             self.manifestExt.manifest[env]['services'] = {svc.adornee.returned_name: (
             {
                 'depends': proc_deps(svc.kwargs_val.get('depends', [])),
-                'module': svc.adornee.get_path(function=True, require=True),
+                'getAdornee': svc.adornee.get_path(function=True, require=True),
                 'kind': svc.name
             }
                 | ({'tags': svc.args_val[0]} if svc.name == 'component' else {})
