@@ -37,6 +37,7 @@ type function getFields(T: type)
     return params.head[1]
 end
 
+--@indexed
 local function class<T>(class: T)
     class.__index = class 
 

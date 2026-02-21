@@ -55,4 +55,4 @@ class LifecycleExtension(Extension):
         self.manifestExt: ManifestExtension = ctx.extensions['ManifestExtension']
 
         ctx.register_anot(AnnotationDef('service', retention='build', kwargs={'depends': list_arg}, on_build=self.add_service))
-        ctx.register_anot(AnnotationDef(name='component', retention='build', args=[list_arg], kwargs={'depends': list_arg}, on_build=self.add_service))
+        ctx.register_anot(AnnotationDef(name='component', retention='init', args=[list_arg], kwargs={'depends': list_arg}, on_build=self.add_service))
