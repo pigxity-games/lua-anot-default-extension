@@ -1,7 +1,7 @@
 from graphlib import CycleError, TopologicalSorter
 from typing import TYPE_CHECKING
 from api.annotations import ENVIRONMENTS, AnnotationBuildCtx, AnnotationDef, ExtensionRegistry, Extension
-from api.arguments import list_arg
+from api.arguments import default_list
 from build_process import Environment, PostProcessCtx
 from exceptions import BuildError
 from parser_schemas import Annotation
@@ -54,5 +54,5 @@ class LifecycleExtension(Extension):
     def load(self, ctx: ExtensionRegistry):
         self.manifestExt: ManifestExtension = ctx.extensions['ManifestExtension']
 
-        ctx.register_anot(AnnotationDef('service', retention='build', kwargs={'depends': list_arg}, on_build=self.add_service))
-        ctx.register_anot(AnnotationDef(name='component', retention='init', args=[list_arg], kwargs={'depends': list_arg}, on_build=self.add_service))
+        ctx.register_anot(AnnotationDef('service', retention='build', kwargs={'depends': default_list}, on_build=self.add_service))
+        ctx.register_anot(AnnotationDef(name='component', retention='init', args=[default_list], kwargs={'depends': default_list}, on_build=self.add_service))
