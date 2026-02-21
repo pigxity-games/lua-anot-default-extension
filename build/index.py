@@ -1,7 +1,7 @@
 from api.annotations import ENVIRONMENTS, AnnotationBuildCtx, AnnotationDef, Extension, ExtensionRegistry
 from api.lua_dict import HEADER, LuaPath, LuaPathResolver, convert_dict_module
 from build_process import Environment, PostProcessCtx
-from parser_schemas import LuaModule, LuaType
+from parser_schemas import LuaType, ReturnedValue
 
 
 def _env(ctx: AnnotationBuildCtx):
@@ -46,14 +46,14 @@ class IndexExtension(Extension):
 
     def on_build_indexed(self, ctx: AnnotationBuildCtx):
         module = ctx.annotation.adornee
-        assert isinstance(module, LuaModule)
+        assert isinstance(module, ReturnedValue)
 
         self.indexes[_env(ctx)][module.returned_name] = LuaPath(ctx.parser.file, require=True)
 
 
     def on_build_export_type(self, ctx: AnnotationBuildCtx):
         module = ctx.annotation.adornee
-        assert isinstance(module, LuaModule)
+        assert isinstance(module, ReturnedValue)
 
         path = LuaPath(ctx.parser.file, require=True)
         self.exported_types[_env(ctx)].append((path, module.returned_name))
@@ -70,6 +70,6 @@ class IndexExtension(Extension):
 
     def load(self, ctx: ExtensionRegistry) -> None:
         ctx.register_anot(AnnotationDef(name='indexedType', scope='type', on_build=self.on_build_indexed_type))
-        export_type = AnnotationDef('exportType', on_build=self.on_build_export_type)
+        export_type = AnnotationDef('exportType', scope='returned_value', on_build=self.on_build_export_type)
         ctx.register_anot(export_type)
-        ctx.register_anot(AnnotationDef('indexed', on_build=self.on_build_indexed, extends=[export_type]))
+        ctx.register_anot(AnnotationDef('indexed', scope='returned_value', on_build=self.on_build_indexed, extends=[export_type]))

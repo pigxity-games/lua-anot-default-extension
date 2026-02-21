@@ -1,5 +1,3 @@
-local TableUtils = require(script.Parent.Utils.TableUtils)
-
 --@module
 local module = {}
 
@@ -7,10 +5,7 @@ local module = {}
 --@onPostInit
 function module.postInit(manifest)
     for _, data in pairs(manifest.services) do
-        local service = require(data.module)
-        if data.exports then
-            service = TableUtils.walkTable(service, data.exports)
-        end
+        local service = data.getAdornee()
 
         if service._init then
             --build deps list

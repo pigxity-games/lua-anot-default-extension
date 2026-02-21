@@ -37,7 +37,7 @@ class LifecycleExtension(Extension):
             self.manifestExt.manifest[env]['services'] = {svc.adornee.returned_name: (
             {
                 'depends': proc_deps(svc.kwargs_val.get('depends', [])),
-                'module': svc.adornee.get_path(),
+                'module': svc.adornee.get_path(function=True, require=True),
                 'kind': svc.name
             }
                 | ({'tags': svc.args_val[0]} if svc.name == 'component' else {})
@@ -55,4 +55,4 @@ class LifecycleExtension(Extension):
         self.manifestExt: ManifestExtension = ctx.extensions['ManifestExtension']
 
         ctx.register_anot(AnnotationDef('service', retention='build', kwargs={'depends': default_list}, on_build=self.add_service))
-        ctx.register_anot(AnnotationDef(name='component', retention='init', args=[default_list], kwargs={'depends': default_list}, on_build=self.add_service))
+        ctx.register_anot(AnnotationDef(name='component', retention='build', args=[default_list], kwargs={'depends': default_list}, on_build=self.add_service))
