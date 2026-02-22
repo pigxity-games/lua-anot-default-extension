@@ -1,12 +1,13 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local class = require(script.Parent.Utils.class)
 local InstanceUtils = require(script.Parent.Utils.InstanceUtils)
 
+local isServer = RunService:IsServer()
+local oppositeEnvName = isServer and "client" or "server" 
 
---@module
-local module = {}
 
-
-function initService(data, service, ...)
+local function initService(data, service, ...)
     if data.kind == "service" then
         service:_init(...)
     else
@@ -19,6 +20,26 @@ function initService(data, service, ...)
     end
 end
 
+local function getRemoteMethod(remote: RemoteFunction | RemoteEvent)
+    if remote:IsA("RemoteEvent") then
+        if isServer then
+            return remote.FireClient
+        else
+            return remote.FireServer
+        end
+    else
+        if isServer then
+            return remote.InvokeClient
+        else
+            return remote.InvokeServer
+        end
+    end
+end
+
+
+--@module
+local module = {}
+
 
 --@onInit
 function module.initServices(manifest)
@@ -30,6 +51,7 @@ function module.initServices(manifest)
             --build deps list
             if #data.depends.services > 0 or #data.depends.remotes > 0 then
                 local injectDeps = {}
+                injectDeps[oppositeEnvName] = {}
 
                 --service deps
                 for _, dep in ipairs(data.depends.services) do
@@ -38,8 +60,19 @@ function module.initServices(manifest)
 
                 --remote deps
                 for _, dep in ipairs(data.depends.remotes) do
-                    --TODO 
-                    --injectDeps[dep] = {wrap remote events into a table that is similar to a service}
+                    --wrap remote events into a table that is similar to a service
+                    local remotesTable = {}
+                    local remotes = ReplicatedStorage.Generated.Remotes:WaitForChild(dep)
+
+                    for i, remote in ipairs(remotes:GetChildren()) do
+                        local remoteMethod = getRemoteMethod(remote)
+                        
+                        remotesTable[remote.Name] = function(...)
+                            return remoteMethod(remote, ...)
+                        end
+                    end
+
+                    injectDeps[oppositeEnvName][dep] = remotesTable
                 end
 
                 initService(data, service, injectDeps)
@@ -49,5 +82,6 @@ function module.initServices(manifest)
         end
     end
 end
+
 
 return module
