@@ -6,6 +6,8 @@ from parser_schemas import LuaType, ReturnedValue
 
 def _env(ctx: AnnotationBuildCtx):
     return ctx.build_ctx.env
+def _name(ctx: AnnotationBuildCtx):
+    return ctx.annotation.kwargs_val.get('name')
 
 
 class IndexExtension(Extension):
@@ -48,15 +50,23 @@ class IndexExtension(Extension):
         module = ctx.annotation.adornee
         assert isinstance(module, ReturnedValue)
 
-        self.indexes[_env(ctx)][module.returned_name] = LuaPath(ctx.parser.file, require=True)
+        dict = self.indexes[_env(ctx)]
+        key = _name(ctx) or module.returned_name
+        value = module.get_path(require=True)
+
+        argval = ctx.annotation.args_val
+        if argval:
+            dict.setdefault(argval[0], {})
+            dict[argval[0]][key] = value
+        else:
+            dict[key] = value
 
 
     def on_build_export_type(self, ctx: AnnotationBuildCtx):
         module = ctx.annotation.adornee
         assert isinstance(module, ReturnedValue)
 
-        path = LuaPath(ctx.parser.file, require=True)
-        self.exported_types[_env(ctx)].append((path, module.returned_name))
+        self.exported_types[_env(ctx)].append((module.get_path(require=True), _name(ctx) or module.returned_name))
 
 
     def on_build_indexed_type(self, ctx: AnnotationBuildCtx):
@@ -65,11 +75,10 @@ class IndexExtension(Extension):
         assert lua_type.exported
 
         path = LuaPath(ctx.parser.file, require=True)
-        self.indexed_types[_env(ctx)].append((path, lua_type.name, ctx.parser.file_name))
+        self.indexed_types[_env(ctx)].append((path, _name(ctx) or lua_type.name, ctx.parser.file_name))
 
 
     def load(self, ctx: ExtensionRegistry) -> None:
-        ctx.register_anot(AnnotationDef(name='indexedType', scope='type', on_build=self.on_build_indexed_type))
-        export_type = AnnotationDef('exportType', scope='returned_value', on_build=self.on_build_export_type)
-        ctx.register_anot(export_type)
-        ctx.register_anot(AnnotationDef('indexed', scope='returned_value', on_build=self.on_build_indexed, extends=[export_type]))
+        ctx.register_anot(AnnotationDef('indexedType', scope='type',           kwargs={'name': str}, on_build=self.on_build_indexed_type))
+        ctx.register_anot(AnnotationDef('exportType',  scope='returned_value', kwargs={'name': str}, on_build=self.on_build_export_type))
+        ctx.register_anot(AnnotationDef('indexed',     scope='returned_value', kwargs={'name': str}, args=[str], on_build=self.on_build_indexed))
