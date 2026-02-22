@@ -41,6 +41,15 @@ end
 local module = {}
 
 
+--@annotationInit
+function module.bindTag(anot, manifest)
+    local adornee = anot.getAdornee()
+    for _, tag in ipairs(anot.args[1]) do
+        InstanceUtils.useCollectionTag(tag, adornee)
+    end
+end
+
+
 --@onInit
 function module.initServices(manifest)
     for _, serviceName in ipairs(manifest.load_order) do

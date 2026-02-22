@@ -1,10 +1,10 @@
 from graphlib import CycleError, TopologicalSorter
 from typing import TYPE_CHECKING
-from api.annotations import ENVIRONMENTS, AnnotationBuildCtx, AnnotationDef, ExtensionRegistry, Extension
+from api.annotations import ENVIRONMENTS, AnnotationBuildCtx, AnnotationDef, ExtensionRegistry, Extension, scope
 from api.arguments import default_list
 from build_process import Environment, PostProcessCtx
 from exceptions import BuildError
-from parser_schemas import Annotation
+from parser_schemas import Annotation, LuaMethod
 
 if TYPE_CHECKING:
     from lua_extension_anots import ManifestExtension
@@ -55,4 +55,5 @@ class LifecycleExtension(Extension):
         self.manifestExt: ManifestExtension = ctx.extensions['ManifestExtension']
 
         ctx.register_anot(AnnotationDef('service', retention='build', kwargs={'depends': default_list}, on_build=self.add_service))
-        ctx.register_anot(AnnotationDef(name='component', retention='build', args=[default_list], kwargs={'depends': default_list}, on_build=self.add_service))
+        ctx.register_anot(AnnotationDef('component', retention='build', args=[default_list], kwargs={'depends': default_list}, on_build=self.add_service))
+        ctx.register_anot(AnnotationDef('bindTag', retention='init', args=[default_list], scope='method'))
