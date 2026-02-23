@@ -1,24 +1,57 @@
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local class = require(script.Parent.Utils.class)
-local InstanceUtils = require(script.Parent.Utils.InstanceUtils)
 
 local isServer = RunService:IsServer()
 local oppositeEnvName = isServer and "client" or "server" 
 
 
+local function useCollectionTag(tag, consumer)
+    local cleanups = {}
+
+    local function onAdd(inst)
+        --dedupe
+        if cleanups[inst] ~= nil then
+            return
+        end
+
+        local cleanup = consumer(inst)
+        cleanups[inst] = cleanup
+    end
+
+    local function onRemove(inst)
+        cleanups[inst]()
+        cleanups[inst] = nil
+    end
+
+    CollectionService:GetInstanceAddedSignal(tag):Connect(onAdd)
+    CollectionService:GetInstanceRemovedSignal(tag):Connect(onRemove)
+
+    for _, inst in ipairs(CollectionService:GetTagged(tag)) do
+        onAdd(inst)
+    end
+end
+
+
 local function initService(data, service, ...)
     if data.kind == "service" then
         service:_init(...)
-    else
-        class(service)
-        for _, tag in ipairs(data.tags) do
-            InstanceUtils.useCollectionTag(tag, function(inst)
-                service.new(inst)
-            end)
-        end
+        return
+    end
+
+    class(service)
+
+    for _, tag in ipairs(data.tags) do
+        useCollectionTag(tag, function(inst)
+            local obj = service.new(inst)
+            return function()
+                obj:_destroy()
+            end
+        end)
     end
 end
+
 
 local function getRemoteMethod(remote: RemoteFunction | RemoteEvent)
     if remote:IsA("RemoteEvent") then
@@ -42,10 +75,11 @@ local module = {}
 
 
 --@annotationInit
-function module.bindTag(anot, manifest)
+function module.bindTag(anot)
     local adornee = anot.getAdornee()
+
     for _, tag in ipairs(anot.args[1]) do
-        InstanceUtils.useCollectionTag(tag, adornee)
+        useCollectionTag(tag, adornee)
     end
 end
 
